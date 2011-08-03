@@ -9,33 +9,45 @@ module SqlFunk
   
   module Base
     
-    def count_by(column_name, options = {})
-      options[:order] ||= 'ASC'
-      options[:group_by] ||= 'day'
-      options[:group_column] ||= options[:group_by]
+    def aggregate_by(options = {})
+      raise ArgumentError, ':aggregate is required'   unless options[:aggregate]
+      raise ArgumentError, ':date_column is required' unless options[:date_column]
+
+      options[:aggregate]     ||= 'COUNT(*)'
+      options[:aggregate_key] ||= options[:aggregate]
+      options[:order]         ||= 'ASC'
+      options[:group_by]      ||= 'day'
+      options[:group_column]  ||= options[:group_by]
 
       date_func = case options[:group_by]
       when "day"
         case ActiveRecord::Base.connection.adapter_name.downcase
-        when /^sqlite/ then "STRFTIME(\"%Y-%m-%d\", #{column_name})"
-        when /^mysql/ then "DATE(#{column_name})"
-        when /^postgresql/ then "DATE_TRUNC('day', #{column_name})"
+        when /^sqlite/ then "STRFTIME(\"%Y-%m-%d\", #{options[:date_column]})"
+        when /^mysql/ then "DATE(#{options[:date_column]})"
+        when /^postgresql/ then "DATE_TRUNC('day', #{options[:date_column]})"
         end
       when "month"
         case ActiveRecord::Base.connection.adapter_name.downcase
-        when /^sqlite/ then "STRFTIME(\"%Y-%m\", #{column_name})"
-        when /^mysql/ then "DATE_FORMAT(#{column_name}, \"%Y-%m\")"
-        when /^postgresql/ then "DATE_TRUNC('month', #{column_name})"
+        when /^sqlite/ then "STRFTIME(\"%Y-%m\", #{options[:date_column]})"
+        when /^mysql/ then "DATE_FORMAT(#{options[:date_column]}, \"%Y-%m\")"
+        when /^postgresql/ then "DATE_TRUNC('month', #{options[:date_column]})"
         end
       when "year"
         case ActiveRecord::Base.connection.adapter_name.downcase
-        when /^sqlite/ then "STRFTIME(\"%Y\", #{column_name})"
-        when /^mysql/ then "DATE_FORMAT(#{column_name}, \"%Y\")"
-        when /^postgresql/ then "DATE_TRUNC('year', #{column_name})"
+        when /^sqlite/ then "STRFTIME(\"%Y\", #{options[:date_column]})"
+        when /^mysql/ then "DATE_FORMAT(#{options[:date_column]}, \"%Y\")"
+        when /^postgresql/ then "DATE_TRUNC('year', #{options[:date_column]})"
         end
       end
 
-      self.select("#{date_func} AS #{options[:group_column]}, COUNT(*) AS count_all").group(options[:group_column]).order("#{options[:group_column]} #{options[:order]}")
+      self.select("#{date_func} AS #{options[:group_column]}, #{options[:aggregate]} AS #{options[:aggregate_key]}").group(options[:group_column]).order("#{options[:group_column]} #{options[:order]}")
+    end
+    
+    def count_by(date_column, options = {})
+      options[:aggregate]     = 'COUNT(*)'
+      options[:aggregate_key] = 'count_all'
+      options[:date_column]   = date_column
+      aggregate_by(options)
     end
     # 
     # def method_missing(id, *args, &block)
