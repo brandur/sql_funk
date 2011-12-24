@@ -40,7 +40,7 @@ module SqlFunk
         end
       end
 
-      self.select("#{date_func} AS #{options[:group_column]}, #{options[:aggregate]} AS #{options[:aggregate_key]}").group(options[:group_column]).order("#{options[:group_column]} #{options[:order]}")
+      self.select("#{date_func} AS #{options[:group_column]}, #{options[:aggregate]} AS #{options[:aggregate_key]}").group(options[:group_column]).order("#{date_func} #{options[:order]}")
     end
     
     def count_by(date_column, options = {})
